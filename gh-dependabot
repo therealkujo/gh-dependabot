@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import click
 import shutil
 import subprocess
@@ -12,7 +13,7 @@ def dependabot():
 
 @dependabot.command()
 @click.argument('repo', nargs=-1)
-@click.option('-o', '--output', required=True, help='Path to the output file')
+@click.option('-o', '--output', help='Path to the output file')
 def export(repo, output):
     """Pulls all dependabot alerts and exports them to a CSV file
     
@@ -125,8 +126,11 @@ def parse_alerts(repo_name, data):
 
 def generate_csv(data, filename):
 
-    output_file = open(filename, 'w', newline='')
-    csv_writer = csv.writer(output_file)
+    if filename is not None:
+        output_file = open(filename, 'w', newline='')
+        csv_writer = csv.writer(output_file)
+    else:
+        csv_writer = csv.writer(sys.stdout)
 
     needs_header = True
     for alert in data:
@@ -135,7 +139,8 @@ def generate_csv(data, filename):
             needs_header = False
         csv_writer.writerow(alert.values())
     
-    output_file.close()
+    if filename is not None:
+        output_file.close()
 
 if __name__ == '__main__':
     dependabot(obj={})

@@ -9,6 +9,7 @@ import sys
 import subprocess
 from unittest.mock import Mock, call, mock_open, patch
 from click.testing import CliRunner
+from io import StringIO
 
 def import_path(path):
     module_name = os.path.basename(path).replace('-', '_')
@@ -91,13 +92,17 @@ class TestDependabot(unittest.TestCase):
         
         self.assertListEqual(dependabot.parse_alerts('test', self.graphql_alerts), self.parsed_alerts)
 
-    def test_generate_csv(self):
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_generate_csv(self, fake_stdout):
         fake_open = mock_open()
         with patch("builtins.open", fake_open, create=True):
             dependabot.generate_csv(self.parsed_alerts, 'sample.csv')
         
         fake_open.assert_called_with('sample.csv', 'w', newline='')
         fake_open.return_value.write.assert_has_calls([call(self.csv_header_values), call(self.csv_row_values)])
+
+        dependabot.generate_csv(self.parsed_alerts, None)
+        self.assertEqual(fake_stdout.getvalue(), self.csv_header_values + self.csv_row_values)
 
     @patch("gh_dependabot.parse_alerts")
     @patch("subprocess.run")

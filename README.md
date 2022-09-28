@@ -32,7 +32,7 @@ Usage: gh dependabot export [OPTIONS] [REPO]...
   REPO is space separated in the OWNER/NAME format
 
 Options:
-  -o, --output TEXT  Path to the output file  [required]
+  -o, --output TEXT  Path to the output file
   --help             Show this message and exit.
 ```
 
