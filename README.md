@@ -3,8 +3,19 @@ A GH CLI extension for using Dependabot
 
 ## Installation
 
+### Dependencies
+
+The extension requires you to be running Python 3 and also to have [click](https://click.palletsprojects.com/en/8.1.x/) installed.
+
+To install click you can run
+
 ```bash
-gh extension install https://github.com/therealkujo/gh-dependabot
+python3 -m pip install click
+```
+
+To install the extension you can run
+```bash
+gh extension install therealkujo/gh-dependabot
 ```
 
 ## Usage

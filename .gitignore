@@ -2,3 +2,4 @@ htmlcov/
 venv/
 *.csv
 *.coverage
+.DS_Store
