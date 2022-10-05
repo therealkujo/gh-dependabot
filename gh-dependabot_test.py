@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-from operator import sub
 import unittest
 import importlib.util
 import importlib.machinery
 import os
 import sys
 import subprocess
-from unittest.mock import Mock, call, mock_open, patch
+from unittest.mock import call, mock_open, patch
 from click.testing import CliRunner
 from io import StringIO
 
