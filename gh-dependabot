@@ -29,53 +29,54 @@ def export(repo, output):
     
 
 def get_dependabot_alerts(repo_name, cursor='null'):
-    query = 'query ($org: String! $repo: String! $cursor: String){ \
-      repository(owner: $org name: $repo) { \
-        name \
-        vulnerabilityAlerts(first: 100 after: $cursor) { \
-          pageInfo { \
-            hasNextPage \
-            endCursor \
-          } \
-          totalCount \
-          nodes { \
-            id \
-            securityAdvisory { \
-              ...advFields \
-            } \
-            securityVulnerability { \
-              package { \
-                ...pkgFields \
-              } \
-              vulnerableVersionRange \
-            } \
-            createdAt \
-            state \
-            fixedAt \
-            fixReason \
-            dismissedAt \
-            dismissReason \
-            dismisser { \
-                login \
-            } \
-            vulnerableManifestPath \
-            vulnerableRequirements \
-          } \
-        } \
-      } \
-    } \
-    fragment advFields on SecurityAdvisory { \
-      ghsaId \
-      permalink \
-      severity \
-      description \
-      summary \
-    } \
-    fragment pkgFields on SecurityAdvisoryPackage { \
-      name \
-      ecosystem \
-    } \
-    '
+    query = """
+    query ($org: String! $repo: String! $cursor: String){
+      repository(owner: $org name: $repo) {
+        name
+        vulnerabilityAlerts(first: 100 after: $cursor) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          totalCount
+          nodes {
+            id
+            securityAdvisory {
+              ...advFields
+            }
+            securityVulnerability {
+              package {
+                ...pkgFields
+              }
+              vulnerableVersionRange
+            }
+            createdAt
+            state
+            fixedAt
+            fixReason
+            dismissedAt
+            dismissReason
+            dismisser {
+                login
+            }
+            vulnerableManifestPath
+            vulnerableRequirements
+          }
+        }
+      }
+    }
+    fragment advFields on SecurityAdvisory {
+      ghsaId
+      permalink
+      severity
+      description
+      summary
+    }
+    fragment pkgFields on SecurityAdvisoryPackage {
+      name
+      ecosystem
+    }
+    """
     gh_cli = shutil.which('gh')
     repo_name_list = repo_name.split('/')
     command = [ gh_cli, 'api', 'graphql', '-F', "org=%s" % repo_name_list[0], '-F', "repo=%s" % repo_name_list[1],  '-F', "cursor=%s" % cursor, '-f', "query=%s" % query]
