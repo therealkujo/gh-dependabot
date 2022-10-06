@@ -31,50 +31,55 @@ def export(repo, output):
 def get_dependabot_alerts(repo_name, cursor='null'):
     query = """
     query ($org: String! $repo: String! $cursor: String){
-      repository(owner: $org name: $repo) {
-        name
-        vulnerabilityAlerts(first: 100 after: $cursor) {
-          pageInfo {
-            hasNextPage
-            endCursor
-          }
-          totalCount
-          nodes {
-            id
-            securityAdvisory {
-              ...advFields
+        repository(owner: $org name: $repo) {
+            name
+            vulnerabilityAlerts(first: 100 after: $cursor) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                totalCount
+                nodes {
+                    id
+                    securityAdvisory {
+                        ...advFields
+                    }
+                    securityVulnerability {
+                        package {
+                            ...pkgFields
+                        }
+                        vulnerableVersionRange
+                        advisory {
+                            cvss {
+                                score
+                            }
+                        }
+                    }
+                    createdAt
+                    state
+                    fixedAt
+                    fixReason
+                    dismissedAt
+                    dismissReason
+                    dismisser {
+                        login
+                    }
+                    vulnerableManifestPath
+                    vulnerableRequirements
+                }
             }
-            securityVulnerability {
-              package {
-                ...pkgFields
-              }
-              vulnerableVersionRange
-            }
-            createdAt
-            state
-            fixedAt
-            fixReason
-            dismissedAt
-            dismissReason
-            dismisser {
-                login
-            }
-            vulnerableManifestPath
-            vulnerableRequirements
-          }
         }
-      }
     }
     fragment advFields on SecurityAdvisory {
-      ghsaId
-      permalink
-      severity
-      description
-      summary
+        ghsaId
+        permalink
+        severity
+        description
+        summary
     }
     fragment pkgFields on SecurityAdvisoryPackage {
-      name
-      ecosystem
+        name
+        ecosystem
     }
     """
     gh_cli = shutil.which('gh')
@@ -106,6 +111,7 @@ def parse_alerts(repo_name, data):
         parsed_alert["id"] = alert["id"]
         parsed_alert["advisory_permalink"] = alert["securityAdvisory"]["permalink"]
         parsed_alert["severity"] = alert["securityAdvisory"]["severity"]
+        parsed_alert["cvss_score"] = alert["securityVulnerability"]["advisory"]["cvss"]["score"]
         parsed_alert["summary"] = alert["securityAdvisory"]["summary"]
         parsed_alert["description"] = alert["securityAdvisory"]["description"]
         parsed_alert["package_ecosystem"] = alert["securityVulnerability"]["package"]["ecosystem"]
