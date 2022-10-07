@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+
+import sys
+import click
+import shutil
+import subprocess
+import json
+import csv
+
+@click.group()
+def dependabot():
+    """A GH CLI extension to manage dependabot"""
+
+@dependabot.command()
+@click.argument('repo', nargs=-1)
+@click.option('-o', '--output', help='Path to the output file')
+def export(repo, output):
+    """Pulls all dependabot alerts and exports them to a CSV file
+    
+       REPO is space separated in the OWNER/NAME format
+    """
+    alerts = []
+    for repository in repo:
+        click.echo("Exporting dependabot alerts from %s into %s" % (repository, output))
+
+        alerts += get_dependabot_alerts(repository)
+    
+    generate_csv(alerts, output)
+    
+
+def get_dependabot_alerts(repo_name, cursor='null'):
+    query = """
+    query ($org: String! $repo: String! $cursor: String){
+        repository(owner: $org name: $repo) {
+            name
+            vulnerabilityAlerts(first: 100 after: $cursor) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                totalCount
+                nodes {
+                    id
+                    securityAdvisory {
+                        ...advFields
+                    }
+                    securityVulnerability {
+                        package {
+                            ...pkgFields
+                        }
+                        vulnerableVersionRange
+                        advisory {
+                            cvss {
+                                score
+                            }
+                        }
+                    }
+                    createdAt
+                    state
+                    fixedAt
+                    fixReason
+                    dismissedAt
+                    dismissReason
+                    dismisser {
+                        login
+                    }
+                    vulnerableManifestPath
+                    vulnerableRequirements
+                }
+            }
+        }
+    }
+    fragment advFields on SecurityAdvisory {
+        ghsaId
+        permalink
+        severity
+        description
+        summary
+    }
+    fragment pkgFields on SecurityAdvisoryPackage {
+        name
+        ecosystem
+    }
+    """
+    gh_cli = shutil.which('gh')
+    repo_name_list = repo_name.split('/')
+    command = [ gh_cli, 'api', 'graphql', '-F', "org=%s" % repo_name_list[0], '-F', "repo=%s" % repo_name_list[1],  '-F', "cursor=%s" % cursor, '-f', "query=%s" % query]
+
+    try:
+        process = subprocess.run(command, text=True, capture_output=True, check=True)
+    except subprocess.CalledProcessError as error:
+        click.echo(error.stdout)
+    
+    output = process.stdout
+    dependabot_results = json.loads(output)
+
+    alerts = parse_alerts(repo_name, dependabot_results["data"]["repository"]["vulnerabilityAlerts"]["nodes"])
+    
+    if not dependabot_results["data"]["repository"]["vulnerabilityAlerts"]["pageInfo"]["hasNextPage"]:
+        return alerts
+    else:
+        return alerts + get_dependabot_alerts(repo_name, dependabot_results["data"]["repository"]["vulnerabilityAlerts"]["pageInfo"]["endCursor"])
+
+def parse_alerts(repo_name, data):
+    alerts = []
+
+    for alert in data:
+        # click.echo(alert)
+        parsed_alert = {}
+        parsed_alert["repo"] = repo_name
+        parsed_alert["id"] = alert["id"]
+        parsed_alert["advisory_permalink"] = alert["securityAdvisory"]["permalink"]
+        parsed_alert["severity"] = alert["securityAdvisory"]["severity"]
+        parsed_alert["cvss_score"] = alert["securityVulnerability"]["advisory"]["cvss"]["score"]
+        parsed_alert["summary"] = alert["securityAdvisory"]["summary"]
+        parsed_alert["description"] = alert["securityAdvisory"]["description"]
+        parsed_alert["package_ecosystem"] = alert["securityVulnerability"]["package"]["ecosystem"]
+        parsed_alert["package_name"] = alert["securityVulnerability"]["package"]["name"]
+        parsed_alert["package_version"] = alert["vulnerableRequirements"]
+        parsed_alert["vulnerable_versions"] = alert["securityVulnerability"]["vulnerableVersionRange"]
+        parsed_alert["manifest_filepath"] = alert["vulnerableManifestPath"]
+        parsed_alert["created_at"] = alert["createdAt"]
+        parsed_alert["state"] = alert["state"]
+        parsed_alert["fixed_at"] = alert["fixedAt"]
+        parsed_alert["fix_reason"] = alert["fixReason"]
+        parsed_alert["dismissed_at"] = alert["dismissedAt"]
+        parsed_alert["dismiss_reason"] = alert["dismissReason"]
+        parsed_alert["dismissed_by"] = alert["dismisser"]
+
+        alerts.append(parsed_alert)
+    
+    return alerts
+
+def generate_csv(data, filename):
+
+    if filename is not None:
+        output_file = open(filename, 'w', newline='')
+        csv_writer = csv.writer(output_file)
+    else:
+        csv_writer = csv.writer(sys.stdout)
+
+    needs_header = True
+    for alert in data:
+        if needs_header:
+            csv_writer.writerow(alert.keys())
+            needs_header = False
+        csv_writer.writerow(alert.values())
+    
+    if filename is not None:
+        output_file.close()
+
+if __name__ == '__main__':
+    dependabot(obj={})
