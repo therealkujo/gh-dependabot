@@ -17,6 +17,9 @@ To install the extension you can run
 ```bash
 gh extension install therealkujo/gh-dependabot
 ```
+#### Click
+
+Click is a really useful that helps build command line interfaces. It is highly configurable and helps to automagically generate all the interfaces based on my configuration. I have been using it for all my CLI tools to help reduce the amount of code I need to maintain just to have an interface and I can focus on the actual code itself.
 
 #### Pyrate Limiter
 
