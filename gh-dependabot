@@ -6,6 +6,11 @@ import shutil
 import subprocess
 import json
 import csv
+import re
+import time
+from pyrate_limiter import Duration, Limiter, RequestRate
+
+limiter = Limiter(RequestRate(1, Duration.SECOND))
 
 @click.group()
 def dependabot():
@@ -15,9 +20,10 @@ def dependabot():
 @click.argument('repo', nargs=-1)
 @click.option('-o', '--output', help='Path to the output file')
 def export(repo, output):
-    """Pulls all dependabot alerts and exports them to a CSV file
-    
-       REPO is space separated in the OWNER/NAME format
+    """
+        Pulls all dependabot alerts and exports them to a CSV file
+
+        REPO is space separated in the OWNER/NAME format
     """
     alerts = []
     for repository in repo:
@@ -82,18 +88,16 @@ def get_dependabot_alerts(repo_name, cursor='null'):
         ecosystem
     }
     """
-    gh_cli = shutil.which('gh')
     repo_name_list = repo_name.split('/')
-    command = [ gh_cli, 'api', 'graphql', '-F', "org=%s" % repo_name_list[0], '-F', "repo=%s" % repo_name_list[1],  '-F', "cursor=%s" % cursor, '-f', "query=%s" % query]
+    command = [ 'graphql', '-F', "org=%s" % repo_name_list[0], '-F', "repo=%s" % repo_name_list[1],  '-F', "cursor=%s" % cursor, '-f', "query=%s" % query]
 
-    try:
-        process = subprocess.run(command, text=True, capture_output=True, check=True)
-    except subprocess.CalledProcessError as error:
-        click.echo(error.stdout)
-    
-    output = process.stdout
-    dependabot_results = json.loads(output)
+    response_code, headers, body = call_gh_api(command)
+    if response_code != '200':
+        click.echo("ERROR: Could not get dependabot alerts for %s" % repo_name)
+        click.echo("Response Code: %s\nHTTP Headers: %s\nError Message: %s" % (response_code, headers, body))
+        return False
 
+    dependabot_results = json.loads(body)
     alerts = parse_alerts(repo_name, dependabot_results["data"]["repository"]["vulnerabilityAlerts"]["nodes"])
     
     if not dependabot_results["data"]["repository"]["vulnerabilityAlerts"]["pageInfo"]["hasNextPage"]:
@@ -148,6 +152,96 @@ def generate_csv(data, filename):
     
     if filename is not None:
         output_file.close()
+
+@dependabot.command()
+@click.argument('repo', nargs=-1)
+def enable(repo):
+    """
+        Enables dependabot alerts for a repo
+
+        REPO is space separated in the OWNER/NAME format
+    """
+
+    success_repos = []
+    failed_repos = []
+    for repository in repo:
+        click.echo("Enabling dependabot alerts for %s" % repository)
+        status = enable_vulnerability_alerts(repository)
+        if status:
+            success_repos.append(repository)
+        else:
+            failed_repos.append(repository)
+
+    click.echo("Successfully enabled dependabot alerts for %i repositories" % len(success_repos))
+    click.echo("List of successfully enabled repos:")
+    for repository in success_repos:
+        click.echo(repository)
+
+    click.echo("Unable to enable dependabot alerts for %i repositories" % len(failed_repos))
+    click.echo("List of unsuccessful repos:")
+    for repository in failed_repos:
+        click.echo(repository)
+
+def enable_vulnerability_alerts(repo):
+    url = "/repos/%s/vulnerability-alerts" % repo
+    accept_header = 'Accept: application/vnd.github+json'
+
+    command = [ '--method', 'PUT', '-H', accept_header, url]
+
+    response_code, headers, body = call_gh_api(command)
+
+    if response_code != '204':
+        click.echo("ERROR: Could not enable dependabot alerts for %s" % repo)
+        click.echo("Response Code: %s\nHTTP Headers: %s\nError Message: %s" % (response_code, headers, body))
+        return False
+
+    return True
+
+@limiter.ratelimit("GitHub", delay=True)
+def call_gh_api(command):
+    gh_cli = shutil.which('gh')
+    base_command = [ gh_cli, 'api', '--include' ]
+
+    try:
+        process = subprocess.run(base_command + command, text=True, capture_output=True, check=True)
+        output = process.stdout
+    except subprocess.CalledProcessError as error:
+        output = error.stdout
+
+    # return parse_api_output(output)
+    response_code, headers, body = parse_api_output(output)
+
+    if response_code == '403' and headers['X-Ratelimit-Remaining'] == '0':
+        current_time = int(time.time())
+        sleep_time = (int(headers['X-Ratelimit-Reset']) - current_time) + 5
+        rate_limit_type = "primary"
+    elif response_code == '403' and 'Retry-After' in headers:
+        sleep_time = int(headers['Retry-After']) + 5
+        rate_limit_type = "secondary"
+    elif response_code == '403'and 'secondary rate limit' in body:
+        sleep_time = 60
+        rate_limit_type = "secondary"
+    else:
+        return (response_code, headers, body)
+
+    click.echo("GitHub %s rate limit hit. Sleeping for %i seconds" % (rate_limit_type, sleep_time))
+    time.sleep(sleep_time)
+    return call_gh_api(command)
+
+def parse_api_output(output):
+    # Regex to parse the API output
+    # Group 1 will get the HTTP status code
+    # Group 2 will get the HTTP response headers
+    # Group 3 will get the HTTP body
+    api_output_regex = re.compile(r'HTTP/\d\.\d (\d+) (?:\w[\w\s]+)\n(.+?)(?:\n|\r\n){2}([^\n]+)?\n?', re.DOTALL)
+
+    # Regex to parse the HTTP response headers into a JSON format
+    header_regex = re.compile(r'([\w-]+):\s?(.+?)\r?\n')
+
+    response_code, headers, body = api_output_regex.findall(output)[0]
+    parsed_header = { item[0]: item[1] for item in header_regex.findall(headers) }
+
+    return (response_code, parsed_header, body)
 
 if __name__ == '__main__':
     dependabot(obj={})
