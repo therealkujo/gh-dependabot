@@ -5,7 +5,7 @@ A GH CLI extension for using Dependabot
 
 ### Dependencies
 
-The extension requires you to be running Python 3 and also to have [click](https://click.palletsprojects.com/en/8.1.x/) installed.
+The extension requires you to be running Python 3 and also to have [click](https://click.palletsprojects.com/en/8.1.x/) and [pyrate-limiter](https://github.com/vutran1710/PyrateLimiter) installed.
 
 To install click you can run
 
@@ -22,7 +22,7 @@ gh extension install therealkujo/gh-dependabot
 
 Since the GitHub API can be very aggressive in the [secondary rate limit](https://docs.github.com/en/rest/overview/resources-in-the-rest-api#secondary-rate-limits), I decided to try and do some smoothing to try and space out all of my API calls to avoid being hit with the secondary rate limit. According to the [best practices guidelines] (https://docs.github.com/en/rest/guides/best-practices-for-integrators#dealing-with-secondary-rate-limits) they recommend limiting to one request per second when making a large number of requests. I decided to be conservative and limit my calls to one request per second regardless of number.
 
-To achieve this, I used this python libary called [Pyrate Limiter](https://pypi.org/project/pyrate-limiter/) which helps you limit calls to specific funtions or code blocks. I decorated `call_gh_api` so that the function can only be called a maximum of 1 time per second to help slow down the API requests I send to GitHub. Hopefully I can avoid the secondary rate limit and only need to worry about the primary one.
+To achieve this, I used this python libary called [Pyrate Limiter](https://pypi.org/project/pyrate-limiter/) which helps you limit calls to specific funtions or code blocks by leveraging the leaky bucket algorithm. I decorated `call_gh_api` so that the function can only be called a maximum of 1 time per second to help slow down the API requests I send to GitHub. Hopefully I can avoid the secondary rate limit and only need to worry about the primary one. My bucket will eternally grow to ensure that all calls get executed but the more calls we make, the longer it will take.
 
 This is an experiment so I will try and tweak it to be more aggressive if I can when I run this with more customers and the need to do more bulk enables arises.
 
@@ -74,3 +74,10 @@ If you would like to bulk enable dependabot on multiple repos, you can give it a
 ```bash
 gh dependabot enable github/foo github/bar some/hello-world
 ```
+## Tests
+
+If you want to run the unit tests, you will need to clone this repo and just run `./gh-dependabot_test.py`
+
+If you would like to view the test coverage you can run `python -m coverage run ./gh-dependabot_test.py`
+
+To view test coverage results, you can run `python -m coverage report`
