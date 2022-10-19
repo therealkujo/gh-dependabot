@@ -166,8 +166,7 @@ def enable(repo):
     failed_repos = []
     for repository in repo:
         click.echo("Enabling dependabot alerts for %s" % repository)
-        status = enable_vulnerability_alerts(repository)
-        if status:
+        if enable_vulnerability_alerts(repository):
             success_repos.append(repository)
         else:
             failed_repos.append(repository)

@@ -237,5 +237,13 @@ class TestDependabot(unittest.TestCase):
         self.assertFalse(dependabot.enable_vulnerability_alerts('foo/bar'))
         fake_echo.assert_called()
 
+    @patch("click.echo")
+    @patch("gh_dependabot.enable_vulnerability_alerts")
+    def test_enable(self, fake_enable_vulnerability_alerts, fake_echo):
+        fake_enable_vulnerability_alerts.side_effect = [True, False]
+        runner = CliRunner()
+        runner.invoke(dependabot.enable, 'github/foo github/bar'.split())
+        fake_echo.assert_has_calls([call('Enabling dependabot alerts for github/foo'), call('Enabling dependabot alerts for github/bar'), call('Successfully enabled dependabot alerts for 1 repositories'), call('List of successfully enabled repos:'), call('github/foo'), call('Unable to enable dependabot alerts for 1 repositories'), call('List of unsuccessful repos:'), call('github/bar')])
+
 if __name__ == '__main__':
     unittest.main()
