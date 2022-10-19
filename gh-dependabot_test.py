@@ -87,20 +87,20 @@ class TestDependabot(unittest.TestCase):
                     ]
     csv_header_values = 'advisory_permalink,created_at,description,dismiss_reason,dismissed_at,dismissed_by,fix_reason,fixed_at,id,manifest_filepath,package_ecosystem,package_name,package_version,repo,severity,cvss_score,state,summary,vulnerable_versions\r\n'
     csv_row_values = 'https://github.com/advisories/GHSA-6528-wvf6-f6qg,2022-08-10T18:44:52Z,Its really dangerous ok,,,,,,RVA_kwDOHzNV0M6pkdQi,authn-service/requirements.txt,PIP,pycrypto,= 2.6.1,test,HIGH,9.8,OPEN,Pycrypto generates weak key parameters,<= 2.6.1\r\n'
-    mock_gh_query = ['/opt/homebrew/bin/gh', 'api', 'graphql', '-F', 'org=github', '-F', 'repo=foo', '-F', 'cursor=null', '-f', 'query=\n    query ($org: String! $repo: String! $cursor: String){\n        repository(owner: $org name: $repo) {\n            name\n            vulnerabilityAlerts(first: 100 after: $cursor) {\n                pageInfo {\n                    hasNextPage\n                    endCursor\n                }\n                totalCount\n                nodes {\n                    id\n                    securityAdvisory {\n                        ...advFields\n                    }\n                    securityVulnerability {\n                        package {\n                            ...pkgFields\n                        }\n                        vulnerableVersionRange\n                        advisory {\n                            cvss {\n                                score\n                            }\n                        }\n                    }\n                    createdAt\n                    state\n                    fixedAt\n                    fixReason\n                    dismissedAt\n                    dismissReason\n                    dismisser {\n                        login\n                    }\n                    vulnerableManifestPath\n                    vulnerableRequirements\n                }\n            }\n        }\n    }\n    fragment advFields on SecurityAdvisory {\n        ghsaId\n        permalink\n        severity\n        description\n        summary\n    }\n    fragment pkgFields on SecurityAdvisoryPackage {\n        name\n        ecosystem\n    }\n    ']
-    mock_gh_paginated_query = ['/opt/homebrew/bin/gh', 'api', 'graphql', '-F', 'org=github', '-F', 'repo=foo', '-F', 'cursor=Y3Vyc29yOnYyOpHOr2XWzA==', '-f', 'query=\n    query ($org: String! $repo: String! $cursor: String){\n        repository(owner: $org name: $repo) {\n            name\n            vulnerabilityAlerts(first: 100 after: $cursor) {\n                pageInfo {\n                    hasNextPage\n                    endCursor\n                }\n                totalCount\n                nodes {\n                    id\n                    securityAdvisory {\n                        ...advFields\n                    }\n                    securityVulnerability {\n                        package {\n                            ...pkgFields\n                        }\n                        vulnerableVersionRange\n                        advisory {\n                            cvss {\n                                score\n                            }\n                        }\n                    }\n                    createdAt\n                    state\n                    fixedAt\n                    fixReason\n                    dismissedAt\n                    dismissReason\n                    dismisser {\n                        login\n                    }\n                    vulnerableManifestPath\n                    vulnerableRequirements\n                }\n            }\n        }\n    }\n    fragment advFields on SecurityAdvisory {\n        ghsaId\n        permalink\n        severity\n        description\n        summary\n    }\n    fragment pkgFields on SecurityAdvisoryPackage {\n        name\n        ecosystem\n    }\n    ']
+    gh_query = ['/opt/homebrew/bin/gh', 'api', 'graphql', '-F', 'org=github', '-F', 'repo=foo', '-F', 'cursor=null', '-f', 'query=\n    query ($org: String! $repo: String! $cursor: String){\n        repository(owner: $org name: $repo) {\n            name\n            vulnerabilityAlerts(first: 100 after: $cursor) {\n                pageInfo {\n                    hasNextPage\n                    endCursor\n                }\n                totalCount\n                nodes {\n                    id\n                    securityAdvisory {\n                        ...advFields\n                    }\n                    securityVulnerability {\n                        package {\n                            ...pkgFields\n                        }\n                        vulnerableVersionRange\n                        advisory {\n                            cvss {\n                                score\n                            }\n                        }\n                    }\n                    createdAt\n                    state\n                    fixedAt\n                    fixReason\n                    dismissedAt\n                    dismissReason\n                    dismisser {\n                        login\n                    }\n                    vulnerableManifestPath\n                    vulnerableRequirements\n                }\n            }\n        }\n    }\n    fragment advFields on SecurityAdvisory {\n        ghsaId\n        permalink\n        severity\n        description\n        summary\n    }\n    fragment pkgFields on SecurityAdvisoryPackage {\n        name\n        ecosystem\n    }\n    ']
+    gh_paginated_query = ['/opt/homebrew/bin/gh', 'api', 'graphql', '-F', 'org=github', '-F', 'repo=foo', '-F', 'cursor=Y3Vyc29yOnYyOpHOr2XWzA==', '-f', 'query=\n    query ($org: String! $repo: String! $cursor: String){\n        repository(owner: $org name: $repo) {\n            name\n            vulnerabilityAlerts(first: 100 after: $cursor) {\n                pageInfo {\n                    hasNextPage\n                    endCursor\n                }\n                totalCount\n                nodes {\n                    id\n                    securityAdvisory {\n                        ...advFields\n                    }\n                    securityVulnerability {\n                        package {\n                            ...pkgFields\n                        }\n                        vulnerableVersionRange\n                        advisory {\n                            cvss {\n                                score\n                            }\n                        }\n                    }\n                    createdAt\n                    state\n                    fixedAt\n                    fixReason\n                    dismissedAt\n                    dismissReason\n                    dismisser {\n                        login\n                    }\n                    vulnerableManifestPath\n                    vulnerableRequirements\n                }\n            }\n        }\n    }\n    fragment advFields on SecurityAdvisory {\n        ghsaId\n        permalink\n        severity\n        description\n        summary\n    }\n    fragment pkgFields on SecurityAdvisoryPackage {\n        name\n        ecosystem\n    }\n    ']
 
-    mock_dependabot_enable_success_output = "HTTP/2.0 204 No Content\nAccess-Control-Allow-Origin: *\nAccess-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset\nContent-Security-Policy: default-src 'none'\nDate: Tue, 01 Apr 1990 01:02:03 GMT\nGithub-Authentication-Token-Expiration: 2099-04-01 07:00:00 UTC\nReferrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin\nServer: GitHub.com\nStrict-Transport-Security: max-age=31536000; includeSubdomains; preload\nVary: Accept-Encoding, Accept, X-Requested-With\nX-Accepted-Oauth-Scopes: repo\nX-Content-Type-Options: nosniff\nX-Frame-Options: deny\nX-Github-Api-Version-Selected: 2022-08-09\nX-Github-Media-Type: github.v3; format=json\nX-Github-Request-Id: CCEE:9972:181CEB0:312E601:6345FB6B\nX-Oauth-Scopes: admin:gpg_key, admin:public_key, admin:ssh_signing_key, codespace, delete:packages, gist, project, read:org, repo, user, workflow, write:discussion, write:packages\nX-Ratelimit-Limit: 5000\nX-Ratelimit-Remaining: 4998\nX-Ratelimit-Reset: 1665534015\nX-Ratelimit-Resource: core\nX-Ratelimit-Used: 2\nX-Xss-Protection: 0\n\n"
+    dependabot_enable_success_output = "HTTP/2.0 204 No Content\nAccess-Control-Allow-Origin: *\nAccess-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset\nContent-Security-Policy: default-src 'none'\nDate: Tue, 01 Apr 1990 01:02:03 GMT\nGithub-Authentication-Token-Expiration: 2099-04-01 07:00:00 UTC\nReferrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin\nServer: GitHub.com\nStrict-Transport-Security: max-age=31536000; includeSubdomains; preload\nVary: Accept-Encoding, Accept, X-Requested-With\nX-Accepted-Oauth-Scopes: repo\nX-Content-Type-Options: nosniff\nX-Frame-Options: deny\nX-Github-Api-Version-Selected: 2022-08-09\nX-Github-Media-Type: github.v3; format=json\nX-Github-Request-Id: CCEE:9972:181CEB0:312E601:6345FB6B\nX-Oauth-Scopes: admin:gpg_key, admin:public_key, admin:ssh_signing_key, codespace, delete:packages, gist, project, read:org, repo, user, workflow, write:discussion, write:packages\nX-Ratelimit-Limit: 5000\nX-Ratelimit-Remaining: 4998\nX-Ratelimit-Reset: 1665534015\nX-Ratelimit-Resource: core\nX-Ratelimit-Used: 2\nX-Xss-Protection: 0\n\n"
 
-    mock_dependabot_enable_error_output = 'HTTP/2.0 404 Not Found\nAccess-Control-Allow-Origin: *\nAccess-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset\nContent-Security-Policy: default-src \'none\'\nDate: Tue, 01 Apr 1990 01:02:03 GMT\nGithub-Authentication-Token-Expiration: 2099-04-01 07:00:00 UTC\nReferrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin\nServer: GitHub.com\nStrict-Transport-Security: max-age=31536000; includeSubdomains; preload\nVary: Accept-Encoding, Accept, X-Requested-With\nX-Accepted-Oauth-Scopes: repo\nX-Content-Type-Options: nosniff\nX-Frame-Options: deny\nX-Github-Api-Version-Selected: 2022-08-09\nX-Github-Media-Type: github.v3; format=json\nX-Github-Request-Id: CCEE:9972:181CEB0:312E601:6345FB6B\nX-Oauth-Scopes: admin:gpg_key, admin:public_key, admin:ssh_signing_key, codespace, delete:packages, gist, project, read:org, repo, user, workflow, write:discussion, write:packages\nX-Ratelimit-Limit: 5000\nX-Ratelimit-Remaining: 4998\nX-Ratelimit-Reset: 1665534015\nX-Ratelimit-Resource: core\nX-Ratelimit-Used: 2\nX-Xss-Protection: 0\n\n{"message":"Not Found","documentation_url":"https://docs.github.com/rest"}'
+    dependabot_enable_error_output = 'HTTP/2.0 404 Not Found\nAccess-Control-Allow-Origin: *\nAccess-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset\nContent-Security-Policy: default-src \'none\'\nDate: Tue, 01 Apr 1990 01:02:03 GMT\nGithub-Authentication-Token-Expiration: 2099-04-01 07:00:00 UTC\nReferrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin\nServer: GitHub.com\nStrict-Transport-Security: max-age=31536000; includeSubdomains; preload\nVary: Accept-Encoding, Accept, X-Requested-With\nX-Accepted-Oauth-Scopes: repo\nX-Content-Type-Options: nosniff\nX-Frame-Options: deny\nX-Github-Api-Version-Selected: 2022-08-09\nX-Github-Media-Type: github.v3; format=json\nX-Github-Request-Id: CCEE:9972:181CEB0:312E601:6345FB6B\nX-Oauth-Scopes: admin:gpg_key, admin:public_key, admin:ssh_signing_key, codespace, delete:packages, gist, project, read:org, repo, user, workflow, write:discussion, write:packages\nX-Ratelimit-Limit: 5000\nX-Ratelimit-Remaining: 4998\nX-Ratelimit-Reset: 1665534015\nX-Ratelimit-Resource: core\nX-Ratelimit-Used: 2\nX-Xss-Protection: 0\n\n{"message":"Not Found","documentation_url":"https://docs.github.com/rest"}'
 
-    mock_dependabot_enable_parsed_headers = {'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset', 'Content-Security-Policy': "default-src 'none'", 'Date': 'Tue, 01 Apr 1990 01:02:03 GMT', 'Github-Authentication-Token-Expiration': '2099-04-01 07:00:00 UTC', 'Referrer-Policy': 'origin-when-cross-origin, strict-origin-when-cross-origin', 'Server': 'GitHub.com', 'Strict-Transport-Security': 'max-age=31536000; includeSubdomains; preload', 'Vary': 'Accept-Encoding, Accept, X-Requested-With', 'X-Accepted-Oauth-Scopes': 'repo', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'deny', 'X-Github-Api-Version-Selected': '2022-08-09', 'X-Github-Media-Type': 'github.v3; format=json', 'X-Github-Request-Id': 'CCEE:9972:181CEB0:312E601:6345FB6B', 'X-Oauth-Scopes': 'admin:gpg_key, admin:public_key, admin:ssh_signing_key, codespace, delete:packages, gist, project, read:org, repo, user, workflow, write:discussion, write:packages', 'X-Ratelimit-Limit': '5000', 'X-Ratelimit-Remaining': '4998', 'X-Ratelimit-Reset': '1665534015', 'X-Ratelimit-Resource': 'core', 'X-Ratelimit-Used': '2'}
+    dependabot_enable_parsed_headers = {'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset', 'Content-Security-Policy': "default-src 'none'", 'Date': 'Tue, 01 Apr 1990 01:02:03 GMT', 'Github-Authentication-Token-Expiration': '2099-04-01 07:00:00 UTC', 'Referrer-Policy': 'origin-when-cross-origin, strict-origin-when-cross-origin', 'Server': 'GitHub.com', 'Strict-Transport-Security': 'max-age=31536000; includeSubdomains; preload', 'Vary': 'Accept-Encoding, Accept, X-Requested-With', 'X-Accepted-Oauth-Scopes': 'repo', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'deny', 'X-Github-Api-Version-Selected': '2022-08-09', 'X-Github-Media-Type': 'github.v3; format=json', 'X-Github-Request-Id': 'CCEE:9972:181CEB0:312E601:6345FB6B', 'X-Oauth-Scopes': 'admin:gpg_key, admin:public_key, admin:ssh_signing_key, codespace, delete:packages, gist, project, read:org, repo, user, workflow, write:discussion, write:packages', 'X-Ratelimit-Limit': '5000', 'X-Ratelimit-Remaining': '4998', 'X-Ratelimit-Reset': '1665534015', 'X-Ratelimit-Resource': 'core', 'X-Ratelimit-Used': '2'}
 
-    mock_dependabot_enable_success_parsed_output = ('204', mock_dependabot_enable_parsed_headers, '')
+    dependabot_enable_success_parsed_output = ('204', dependabot_enable_parsed_headers, '')
 
-    mock_dependabot_enable_command = ['--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
+    dependabot_enable_command = ['--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
 
-    mock_dependabot_enable_full_command = ['/opt/homebrew/bin/gh', 'api', '--include', '--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
+    dependabot_enable_full_command = ['/opt/homebrew/bin/gh', 'api', '--include', '--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
 
     class MockSubprocess():
         def __init__(self, stdout):
@@ -165,12 +165,12 @@ class TestDependabot(unittest.TestCase):
         fake_generate_csv.assert_called_once_with(['first,repo,results', 'second,repo,results'], 'test.csv')
 
     def test_parse_api_output(self):
-        expected_success_result = ('204', self.mock_dependabot_enable_parsed_headers, '')
-        result = dependabot.parse_api_output(self.mock_dependabot_enable_success_output)
+        expected_success_result = ('204', self.dependabot_enable_parsed_headers, '')
+        result = dependabot.parse_api_output(self.dependabot_enable_success_output)
         self.assertTupleEqual(expected_success_result, result)
 
-        expected_fail_result = ('404', self.mock_dependabot_enable_parsed_headers, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest"}')
-        result = dependabot.parse_api_output(self.mock_dependabot_enable_error_output)
+        expected_fail_result = ('404', self.dependabot_enable_parsed_headers, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest"}')
+        result = dependabot.parse_api_output(self.dependabot_enable_error_output)
         self.assertTupleEqual(expected_fail_result, result)
 
     @patch("time.sleep")
@@ -178,22 +178,22 @@ class TestDependabot(unittest.TestCase):
     @patch("gh_dependabot.parse_api_output")
     @patch("subprocess.run")
     def test_call_gh_api(self, fake_subprocess_run, fake_parse_api_output, fake_echo, fake_sleep):
-        fake_subprocess_run.return_value = self.MockSubprocess(self.mock_dependabot_enable_success_output)
-        fake_parse_api_output.return_value = self.mock_dependabot_enable_success_parsed_output
-        result = dependabot.call_gh_api(self.mock_dependabot_enable_command)
-        self.assertTupleEqual(result, self.mock_dependabot_enable_success_parsed_output)
-        fake_subprocess_run.assert_called_once_with(self.mock_dependabot_enable_full_command, text=True, capture_output=True, check=True)
-        fake_parse_api_output.assert_called_once_with(self.mock_dependabot_enable_success_output)
+        fake_subprocess_run.return_value = self.MockSubprocess(self.dependabot_enable_success_output)
+        fake_parse_api_output.return_value = self.dependabot_enable_success_parsed_output
+        result = dependabot.call_gh_api(self.dependabot_enable_command)
+        self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
+        fake_subprocess_run.assert_called_once_with(self.dependabot_enable_full_command, text=True, capture_output=True, check=True)
+        fake_parse_api_output.assert_called_once_with(self.dependabot_enable_success_output)
 
         fake_parse_api_output.reset_mock()
         current_time = int(time.time())
-        patched_headers = self.mock_dependabot_enable_parsed_headers.copy()
+        patched_headers = self.dependabot_enable_parsed_headers.copy()
         patched_headers['X-Ratelimit-Reset'] = current_time + 10
         patched_headers['X-Ratelimit-Remaining'] = '0'
         fake_api_primary_rate_limit_parsed_output = ('403', patched_headers, '{"message":"API rate limit exceeded for xxx.xxx.xxx.xxx.","documentation_url":"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting"}')
-        fake_parse_api_output.side_effect = [fake_api_primary_rate_limit_parsed_output, self.mock_dependabot_enable_success_parsed_output ]
-        result = dependabot.call_gh_api(self.mock_dependabot_enable_command)
-        self.assertTupleEqual(result, self.mock_dependabot_enable_success_parsed_output)
+        fake_parse_api_output.side_effect = [fake_api_primary_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
+        result = dependabot.call_gh_api(self.dependabot_enable_command)
+        self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
         fake_sleep.assert_called_once_with(14)
         fake_echo.assert_called_once_with('GitHub primary rate limit hit. Sleeping for 14 seconds')
 
@@ -201,25 +201,25 @@ class TestDependabot(unittest.TestCase):
         fake_sleep.reset_mock()
         fake_echo.reset_mock()
         current_time = int(time.time())
-        patched_headers = self.mock_dependabot_enable_parsed_headers.copy()
+        patched_headers = self.dependabot_enable_parsed_headers.copy()
         patched_headers['Retry-After'] = '5'
         secondary_rate_limit_body = '{"message":"You have exceeded a secondary rate limit and have been temporarily blocked from content creation. Please retry your request again later.","documentation_url":"https://docs.github.com/rest/overview/resources-in-the-rest-api#secondary-rate-limiting"}'
         fake_api_secondary_api_rate_limit_parsed_output = ('403', patched_headers, secondary_rate_limit_body)
-        fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.mock_dependabot_enable_success_parsed_output ]
-        result = dependabot.call_gh_api(self.mock_dependabot_enable_command)
-        self.assertTupleEqual(result, self.mock_dependabot_enable_success_parsed_output)
-        fake_parse_api_output.assert_called_with(self.mock_dependabot_enable_success_output)
+        fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
+        result = dependabot.call_gh_api(self.dependabot_enable_command)
+        self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
+        fake_parse_api_output.assert_called_with(self.dependabot_enable_success_output)
         fake_sleep.assert_called_once_with(10)
         fake_echo.assert_called_once_with('GitHub secondary rate limit hit. Sleeping for 10 seconds')
 
         fake_parse_api_output.reset_mock()
         fake_sleep.reset_mock()
         fake_echo.reset_mock()
-        fake_api_secondary_api_rate_limit_parsed_output = ('403', self.mock_dependabot_enable_parsed_headers, secondary_rate_limit_body)
-        fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.mock_dependabot_enable_success_parsed_output ]
-        result = dependabot.call_gh_api(self.mock_dependabot_enable_command)
-        self.assertTupleEqual(result, self.mock_dependabot_enable_success_parsed_output)
-        fake_parse_api_output.assert_called_with(self.mock_dependabot_enable_success_output)
+        fake_api_secondary_api_rate_limit_parsed_output = ('403', self.dependabot_enable_parsed_headers, secondary_rate_limit_body)
+        fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
+        result = dependabot.call_gh_api(self.dependabot_enable_command)
+        self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
+        fake_parse_api_output.assert_called_with(self.dependabot_enable_success_output)
         fake_sleep.assert_called_once_with(60)
         fake_echo.assert_called_once_with('GitHub secondary rate limit hit. Sleeping for 60 seconds')
 
@@ -227,12 +227,12 @@ class TestDependabot(unittest.TestCase):
     @patch("time.sleep")
     @patch("gh_dependabot.call_gh_api")
     def test_enable_vulnerability_alerts(self, fake_call_gh_api, fake_sleep, fake_echo):
-        fake_call_gh_api.return_value = self.mock_dependabot_enable_success_parsed_output
+        fake_call_gh_api.return_value = self.dependabot_enable_success_parsed_output
         self.assertTrue(dependabot.enable_vulnerability_alerts('foo/bar'))
-        fake_call_gh_api.assert_called_once_with(self.mock_dependabot_enable_command)
+        fake_call_gh_api.assert_called_once_with(self.dependabot_enable_command)
 
         fake_call_gh_api.reset_mock()
-        fake_api_error_parsed_output = ('404', self.mock_dependabot_enable_parsed_headers, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/overview"}')
+        fake_api_error_parsed_output = ('404', self.dependabot_enable_parsed_headers, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/overview"}')
         fake_call_gh_api.return_value = fake_api_error_parsed_output
         self.assertFalse(dependabot.enable_vulnerability_alerts('foo/bar'))
         fake_echo.assert_called()
