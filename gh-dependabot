@@ -154,13 +154,18 @@ def generate_csv(data, filename):
         output_file.close()
 
 @dependabot.command()
+@click.option('-o', '--organization', is_flag=True, help='Enable dependabot at the organization level')
 @click.argument('repo', nargs=-1)
-def enable(repo):
+def enable(repo, organization):
     """
-        Enables dependabot alerts for a repo
+        Enables dependabot alerts for an organization or repo
 
-        REPO is space separated in the OWNER/NAME format
+        REPO is space separated in the OWNER/NAME format or just ORGANIZATION
     """
+
+    enable_type = "repositories"
+    if organization:
+        enable_type = "organization(s)"
 
     success_repos = []
     failed_repos = []
@@ -171,18 +176,21 @@ def enable(repo):
         else:
             failed_repos.append(repository)
 
-    click.echo("Successfully enabled dependabot alerts for %i repositories" % len(success_repos))
-    click.echo("List of successfully enabled repos:")
+    click.echo("Successfully enabled dependabot alerts for %i %s" % (len(success_repos), enable_type))
+    click.echo("List of successfully enabled %s:" % enable_type)
     for repository in success_repos:
         click.echo(repository)
 
-    click.echo("Unable to enable dependabot alerts for %i repositories" % len(failed_repos))
-    click.echo("List of unsuccessful repos:")
+    click.echo("Unable to enable dependabot alerts for %i %s" % (len(failed_repos), enable_type))
+    click.echo("List of unsuccessful %s:" % enable_type)
     for repository in failed_repos:
         click.echo(repository)
 
-def enable_vulnerability_alerts(repo):
+def enable_vulnerability_alerts(repo, organization):
     url = "/repos/%s/vulnerability-alerts" % repo
+    if organization:
+        url = "/orgs/%s/dependabot_alerts/enable_all" % repo
+
     accept_header = 'Accept: application/vnd.github+json'
 
     command = [ '--method', 'PUT', '-H', accept_header, url]

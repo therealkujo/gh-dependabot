@@ -98,9 +98,13 @@ class TestDependabot(unittest.TestCase):
 
     dependabot_enable_success_parsed_output = ('204', dependabot_enable_parsed_headers, '')
 
-    dependabot_enable_command = ['--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
+    dependabot_repo_enable_command = ['--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
 
-    dependabot_enable_full_command = ['/opt/homebrew/bin/gh', 'api', '--include', '--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
+    dependabot_repo_enable_full_command = ['/opt/homebrew/bin/gh', 'api', '--include', '--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
+
+    dependabot_org_enable_command = ['--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/orgs/foo/dependabot_alerts/enable_all']
+
+    dependabot_org_enable_full_command = ['/opt/homebrew/bin/gh', 'api', '--include', '--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/orgs/foo/dependabot_alerts/enable_all']
 
     class MockSubprocess():
         def __init__(self, stdout):
@@ -180,9 +184,16 @@ class TestDependabot(unittest.TestCase):
     def test_call_gh_api(self, fake_subprocess_run, fake_parse_api_output, fake_echo, fake_sleep):
         fake_subprocess_run.return_value = self.MockSubprocess(self.dependabot_enable_success_output)
         fake_parse_api_output.return_value = self.dependabot_enable_success_parsed_output
-        result = dependabot.call_gh_api(self.dependabot_enable_command)
+        result = dependabot.call_gh_api(self.dependabot_repo_enable_command)
         self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
-        fake_subprocess_run.assert_called_once_with(self.dependabot_enable_full_command, text=True, capture_output=True, check=True)
+        fake_subprocess_run.assert_called_once_with(self.dependabot_repo_enable_full_command, text=True, capture_output=True, check=True)
+        fake_parse_api_output.assert_called_once_with(self.dependabot_enable_success_output)
+
+        fake_subprocess_run.reset_mock()
+        fake_parse_api_output.reset_mock()
+        result = dependabot.call_gh_api(self.dependabot_org_enable_command)
+        self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
+        fake_subprocess_run.assert_called_once_with(self.dependabot_org_enable_full_command, text=True, capture_output=True, check=True)
         fake_parse_api_output.assert_called_once_with(self.dependabot_enable_success_output)
 
         fake_parse_api_output.reset_mock()
@@ -192,7 +203,7 @@ class TestDependabot(unittest.TestCase):
         patched_headers['X-Ratelimit-Remaining'] = '0'
         fake_api_primary_rate_limit_parsed_output = ('403', patched_headers, '{"message":"API rate limit exceeded for xxx.xxx.xxx.xxx.","documentation_url":"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting"}')
         fake_parse_api_output.side_effect = [fake_api_primary_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
-        result = dependabot.call_gh_api(self.dependabot_enable_command)
+        result = dependabot.call_gh_api(self.dependabot_repo_enable_command)
         self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
         fake_sleep.assert_called_once_with(14)
         fake_echo.assert_called_once_with('GitHub primary rate limit hit. Sleeping for 14 seconds')
@@ -206,7 +217,7 @@ class TestDependabot(unittest.TestCase):
         secondary_rate_limit_body = '{"message":"You have exceeded a secondary rate limit and have been temporarily blocked from content creation. Please retry your request again later.","documentation_url":"https://docs.github.com/rest/overview/resources-in-the-rest-api#secondary-rate-limiting"}'
         fake_api_secondary_api_rate_limit_parsed_output = ('403', patched_headers, secondary_rate_limit_body)
         fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
-        result = dependabot.call_gh_api(self.dependabot_enable_command)
+        result = dependabot.call_gh_api(self.dependabot_repo_enable_command)
         self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
         fake_parse_api_output.assert_called_with(self.dependabot_enable_success_output)
         fake_sleep.assert_called_once_with(10)
@@ -217,24 +228,28 @@ class TestDependabot(unittest.TestCase):
         fake_echo.reset_mock()
         fake_api_secondary_api_rate_limit_parsed_output = ('403', self.dependabot_enable_parsed_headers, secondary_rate_limit_body)
         fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
-        result = dependabot.call_gh_api(self.dependabot_enable_command)
+        result = dependabot.call_gh_api(self.dependabot_repo_enable_command)
         self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
         fake_parse_api_output.assert_called_with(self.dependabot_enable_success_output)
         fake_sleep.assert_called_once_with(60)
         fake_echo.assert_called_once_with('GitHub secondary rate limit hit. Sleeping for 60 seconds')
 
     @patch("click.echo")
-    @patch("time.sleep")
     @patch("gh_dependabot.call_gh_api")
-    def test_enable_vulnerability_alerts(self, fake_call_gh_api, fake_sleep, fake_echo):
+    def test_enable_vulnerability_alerts(self, fake_call_gh_api, fake_echo):
         fake_call_gh_api.return_value = self.dependabot_enable_success_parsed_output
-        self.assertTrue(dependabot.enable_vulnerability_alerts('foo/bar'))
-        fake_call_gh_api.assert_called_once_with(self.dependabot_enable_command)
+        self.assertTrue(dependabot.enable_vulnerability_alerts('foo/bar', False))
+        fake_call_gh_api.assert_called_once_with(self.dependabot_repo_enable_command)
+
+        fake_call_gh_api.reset_mock()
+        fake_call_gh_api.return_value = self.dependabot_enable_success_parsed_output
+        self.assertTrue(dependabot.enable_vulnerability_alerts('foo', True))
+        fake_call_gh_api.assert_called_once_with(self.dependabot_org_enable_command)
 
         fake_call_gh_api.reset_mock()
         fake_api_error_parsed_output = ('404', self.dependabot_enable_parsed_headers, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/overview"}')
         fake_call_gh_api.return_value = fake_api_error_parsed_output
-        self.assertFalse(dependabot.enable_vulnerability_alerts('foo/bar'))
+        self.assertFalse(dependabot.enable_vulnerability_alerts('foo/bar', False))
         fake_echo.assert_called()
 
     @patch("click.echo")
@@ -243,7 +258,7 @@ class TestDependabot(unittest.TestCase):
         fake_enable_vulnerability_alerts.side_effect = [True, False]
         runner = CliRunner()
         runner.invoke(dependabot.enable, 'github/foo github/bar'.split())
-        fake_echo.assert_has_calls([call('Enabling dependabot alerts for github/foo'), call('Enabling dependabot alerts for github/bar'), call('Successfully enabled dependabot alerts for 1 repositories'), call('List of successfully enabled repos:'), call('github/foo'), call('Unable to enable dependabot alerts for 1 repositories'), call('List of unsuccessful repos:'), call('github/bar')])
+        fake_echo.assert_has_calls([call('Enabling dependabot alerts for github/foo'), call('Enabling dependabot alerts for github/bar'), call('Successfully enabled dependabot alerts for 1 repositories'), call('List of successfully enabled repositories:'), call('github/foo'), call('Unable to enable dependabot alerts for 1 repositories'), call('List of unsuccessful repositories:'), call('github/bar')])
 
 if __name__ == '__main__':
     unittest.main()
