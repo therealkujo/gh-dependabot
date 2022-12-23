@@ -154,7 +154,7 @@ class TestDependabot(unittest.TestCase):
     @patch("gh_dependabot.generate_csv")
     @patch("gh_dependabot.get_dependabot_alerts")
     def test_export(self, fake_get_dependabot_alerts, fake_generate_csv):
-        fake_get_dependabot_alerts.return_value=[]
+        fake_get_dependabot_alerts.return_value = []
         runner = CliRunner()
         result = runner.invoke(dependabot.export, '-o test.csv github/foo'.split())
         # dependabot.export('github/foo', 'test.csv')
@@ -206,7 +206,7 @@ class TestDependabot(unittest.TestCase):
         patched_headers['X-Ratelimit-Reset'] = current_time + 10
         patched_headers['X-Ratelimit-Remaining'] = '0'
         fake_api_primary_rate_limit_parsed_output = ('403', patched_headers, '{"message":"API rate limit exceeded for xxx.xxx.xxx.xxx.","documentation_url":"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting"}')
-        fake_parse_api_output.side_effect = [fake_api_primary_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
+        fake_parse_api_output.side_effect = [fake_api_primary_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output]
         result = dependabot.call_gh_api(self.dependabot_repo_enable_command)
         self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
         fake_sleep.assert_called_once_with(14)
@@ -220,7 +220,7 @@ class TestDependabot(unittest.TestCase):
         patched_headers['Retry-After'] = '5'
         secondary_rate_limit_body = '{"message":"You have exceeded a secondary rate limit and have been temporarily blocked from content creation. Please retry your request again later.","documentation_url":"https://docs.github.com/rest/overview/resources-in-the-rest-api#secondary-rate-limiting"}'
         fake_api_secondary_api_rate_limit_parsed_output = ('403', patched_headers, secondary_rate_limit_body)
-        fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
+        fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output]
         result = dependabot.call_gh_api(self.dependabot_repo_enable_command)
         self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
         fake_parse_api_output.assert_called_with(self.dependabot_enable_success_output)
@@ -231,7 +231,7 @@ class TestDependabot(unittest.TestCase):
         fake_sleep.reset_mock()
         fake_echo.reset_mock()
         fake_api_secondary_api_rate_limit_parsed_output = ('403', self.dependabot_enable_parsed_headers, secondary_rate_limit_body)
-        fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output ]
+        fake_parse_api_output.side_effect = [fake_api_secondary_api_rate_limit_parsed_output, self.dependabot_enable_success_parsed_output]
         result = dependabot.call_gh_api(self.dependabot_repo_enable_command)
         self.assertTupleEqual(result, self.dependabot_enable_success_parsed_output)
         fake_parse_api_output.assert_called_with(self.dependabot_enable_success_output)
@@ -277,11 +277,12 @@ class TestDependabot(unittest.TestCase):
     @patch("click.echo")
     def test_print_result(self, fake_echo):
         dependabot.print_result('alerts', ['github/foo'], 'repositories', True)
-        fake_echo.assert_has_calls([call('Successfully enabled dependabot alerts for 1 repositories'), call('List of successfully enabled repositories:'),call('github/foo')])
+        fake_echo.assert_has_calls([call('Successfully enabled dependabot alerts for 1 repositories'), call('List of successfully enabled repositories:'), call('github/foo')])
 
         fake_echo.reset_mock()
         dependabot.print_result('alerts', ['github/bar'], 'repositories', False)
         fake_echo.assert_has_calls([call('Unable to enable dependabot alerts for 1 repositories'), call('List of unsuccessful repositories:'), call('github/bar')])
+
 
 if __name__ == '__main__':
     unittest.main()
