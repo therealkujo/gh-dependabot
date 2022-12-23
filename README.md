@@ -59,24 +59,36 @@ All the repos will be combined into one unified csv report but you can filter by
 
 ### Enable
 
-Enables dependabot alerts on a given repo(s)
+Enables dependabot features on a given org or repo
 
 ```bash
-Usage: gh dependabot enable [OPTIONS] [REPO]...
+Usage: gh dependabot enable [OPTIONS] [NAMES]...
 
-  Enables dependabot alerts for a repo
+  Enables dependabot features for an organization or repo
 
-  REPO is space separated in the OWNER/NAME format
+  NAME is space separated in the OWNER/NAME format or just ORGANIZATION
 
 Options:
-  --help  Show this message and exit.
+  -a, --alerts        Enable dependabot alerts
+  -s, --security      Enable dependabot security updates
+  -o, --organization  Enable dependabot at the organization level
+  --help              Show this message and exit.
 ```
 
-If you would like to bulk enable dependabot on multiple repos, you can give it a space separated list of repos
+You will need to specify with the flags which dependabot feature you would like to enable.
+
+If you would like to bulk enable dependabot alerts on multiple repos, you can give it a space separated list of repos
 
 ```bash
-gh dependabot enable github/foo github/bar some/hello-world
+gh dependabot enable -a github/foo github/bar some/hello-world
 ```
+
+If you would like to bulk enable dependabot alerts on multiple orgs, you can give it a space separated list of orgs
+
+```bash
+gh dependabot enable -ao foo bar
+```
+
 ## Tests
 
 If you want to run the unit tests, you will need to clone this repo and just run `./gh-dependabot_test.py`

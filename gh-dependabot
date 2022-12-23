@@ -154,51 +154,94 @@ def generate_csv(data, filename):
         output_file.close()
 
 @dependabot.command()
+@click.option('-a', '--alerts', is_flag=True, help='Enable dependabot alerts')
+@click.option('-s', '--security', is_flag=True, help='Enable dependabot security updates')
 @click.option('-o', '--organization', is_flag=True, help='Enable dependabot at the organization level')
-@click.argument('repo', nargs=-1)
-def enable(repo, organization):
+@click.argument('names', nargs=-1)
+def enable(names, organization, security, alerts):
     """
-        Enables dependabot alerts for an organization or repo
+        Enables dependabot features for an organization or repo
 
-        REPO is space separated in the OWNER/NAME format or just ORGANIZATION
+        NAME is space separated in the OWNER/NAME format or just ORGANIZATION
     """
 
     enable_type = "repositories"
     if organization:
         enable_type = "organization(s)"
 
-    success_repos = []
-    failed_repos = []
-    for repository in repo:
-        click.echo("Enabling dependabot alerts for %s" % repository)
-        if enable_vulnerability_alerts(repository):
-            success_repos.append(repository)
-        else:
-            failed_repos.append(repository)
+    alert_success = []
+    alert_failed = []
+    security_success = []
+    security_fail = []
+    for name in names:
+        if alerts:
+            click.echo("Enabling dependabot alerts for %s" % name)
+            if enable_feature(name, organization, 'alerts'):
+                alert_success.append(name)
+            else:
+                alert_failed.append(name)
 
-    click.echo("Successfully enabled dependabot alerts for %i %s" % (len(success_repos), enable_type))
-    click.echo("List of successfully enabled %s:" % enable_type)
-    for repository in success_repos:
-        click.echo(repository)
+        if security:
+            click.echo("Enabling dependabot security updates for %s" % name)
+            if enable_feature(name, organization, 'security'):
+                security_success.append(name)
+            else:
+                security_fail.append(name)
 
-    click.echo("Unable to enable dependabot alerts for %i %s" % (len(failed_repos), enable_type))
-    click.echo("List of unsuccessful %s:" % enable_type)
-    for repository in failed_repos:
-        click.echo(repository)
+    if alerts:
+        print_result('alerts', alert_success, enable_type, True)
+        print_result('alerts', alert_failed, enable_type, False)
 
-def enable_vulnerability_alerts(repo, organization):
-    url = "/repos/%s/vulnerability-alerts" % repo
-    if organization:
-        url = "/orgs/%s/dependabot_alerts/enable_all" % repo
+    if security:
+        print_result('security updates', security_success, enable_type, True)
+        print_result('security updates', security_fail, enable_type, False)
+
+def print_result(feature, result_list, enable_type, success):
+    if success:
+        click.echo("Successfully enabled dependabot %s for %i %s" % (feature, len(result_list), enable_type))
+        if len(result_list) > 0:
+            click.echo("List of successfully enabled %s:" % enable_type)
+    else:
+        click.echo("Unable to enable dependabot %s for %i %s" % (feature, len(result_list), enable_type))
+        if len(result_list) > 0:
+            click.echo("List of unsuccessful %s:" % enable_type)
+
+    for name in result_list:
+        click.echo(name)
+
+def enable_feature(name, organization, feature):
+    if feature == 'alerts' and organization:
+        url = "/orgs/%s/dependabot_alerts/enable_all" % name
+        method = 'POST'
+        feature_name = 'dependabot alerts'
+    elif feature == 'alerts' and not organization:
+        url = "/repos/%s/vulnerability-alerts" % name
+        method = 'PUT'
+        feature_name = 'dependabot alerts'
+    elif feature == 'security' and organization:
+        url = "/orgs/%s/dependabot_security_updates/enable_all" % name
+        method = 'POST'
+        feature_name = 'dependabot security updates'
+    elif feature == 'security' and not organization:
+        url = "/repos/%s/automated-security-fixes" % name
+        method = 'PUT'
+        feature_name = 'dependabot security updates'
+    else:
+        click.echo('ERROR: Unknown security feature \'%s\'' % feature)
+        return False
 
     accept_header = 'Accept: application/vnd.github+json'
 
-    command = [ '--method', 'PUT', '-H', accept_header, url]
+    command = [ '--method', method, '-H', accept_header, url]
 
     response_code, headers, body = call_gh_api(command)
 
-    if response_code != '204':
-        click.echo("ERROR: Could not enable dependabot alerts for %s" % repo)
+    if response_code == '422':
+        click.echo("ERROR: Could not enable %s for %s" % (feature_name, name))
+        click.echo("Another security feature is being enabled or a security policy is preventing enablement for this org")
+        return False
+    elif response_code != '204':
+        click.echo("ERROR: Could not enable %s for %s" % (feature_name, name))
         click.echo("Response Code: %s\nHTTP Headers: %s\nError Message: %s" % (response_code, headers, body))
         return False
 

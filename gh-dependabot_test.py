@@ -102,9 +102,9 @@ class TestDependabot(unittest.TestCase):
 
     dependabot_repo_enable_full_command = ['/opt/homebrew/bin/gh', 'api', '--include', '--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/repos/foo/bar/vulnerability-alerts']
 
-    dependabot_org_enable_command = ['--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/orgs/foo/dependabot_alerts/enable_all']
+    dependabot_org_enable_command = ['--method', 'POST', '-H', 'Accept: application/vnd.github+json', '/orgs/foo/dependabot_alerts/enable_all']
 
-    dependabot_org_enable_full_command = ['/opt/homebrew/bin/gh', 'api', '--include', '--method', 'PUT', '-H', 'Accept: application/vnd.github+json', '/orgs/foo/dependabot_alerts/enable_all']
+    dependabot_org_enable_full_command = ['/opt/homebrew/bin/gh', 'api', '--include', '--method', 'POST', '-H', 'Accept: application/vnd.github+json', '/orgs/foo/dependabot_alerts/enable_all']
 
     class MockSubprocess():
         def __init__(self, stdout):
@@ -236,29 +236,48 @@ class TestDependabot(unittest.TestCase):
 
     @patch("click.echo")
     @patch("gh_dependabot.call_gh_api")
-    def test_enable_vulnerability_alerts(self, fake_call_gh_api, fake_echo):
+    def test_enable_feature(self, fake_call_gh_api, fake_echo):
         fake_call_gh_api.return_value = self.dependabot_enable_success_parsed_output
-        self.assertTrue(dependabot.enable_vulnerability_alerts('foo/bar', False))
+        self.assertTrue(dependabot.enable_feature('foo/bar', False, 'alerts'))
         fake_call_gh_api.assert_called_once_with(self.dependabot_repo_enable_command)
 
         fake_call_gh_api.reset_mock()
         fake_call_gh_api.return_value = self.dependabot_enable_success_parsed_output
-        self.assertTrue(dependabot.enable_vulnerability_alerts('foo', True))
+        self.assertTrue(dependabot.enable_feature('foo', True, 'alerts'))
         fake_call_gh_api.assert_called_once_with(self.dependabot_org_enable_command)
 
         fake_call_gh_api.reset_mock()
         fake_api_error_parsed_output = ('404', self.dependabot_enable_parsed_headers, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/overview"}')
         fake_call_gh_api.return_value = fake_api_error_parsed_output
-        self.assertFalse(dependabot.enable_vulnerability_alerts('foo/bar', False))
+        self.assertFalse(dependabot.enable_feature('foo/bar', False, 'alerts'))
         fake_echo.assert_called()
 
     @patch("click.echo")
-    @patch("gh_dependabot.enable_vulnerability_alerts")
-    def test_enable(self, fake_enable_vulnerability_alerts, fake_echo):
-        fake_enable_vulnerability_alerts.side_effect = [True, False]
+    @patch("gh_dependabot.print_result")
+    @patch("gh_dependabot.enable_feature")
+    def test_enable(self, fake_enable_feature, fake_print_result, fake_echo):
+        fake_enable_feature.side_effect = [True, False]
         runner = CliRunner()
-        runner.invoke(dependabot.enable, 'github/foo github/bar'.split())
-        fake_echo.assert_has_calls([call('Enabling dependabot alerts for github/foo'), call('Enabling dependabot alerts for github/bar'), call('Successfully enabled dependabot alerts for 1 repositories'), call('List of successfully enabled repositories:'), call('github/foo'), call('Unable to enable dependabot alerts for 1 repositories'), call('List of unsuccessful repositories:'), call('github/bar')])
+        runner.invoke(dependabot.enable, '-a github/foo github/bar'.split())
+        fake_echo.assert_has_calls([call('Enabling dependabot alerts for github/foo'), call('Enabling dependabot alerts for github/bar')])
+        fake_print_result.assert_has_calls([call('alerts', ['github/foo'], 'repositories', True), call('alerts', ['github/bar'], 'repositories', False)])
+
+        fake_echo.reset_mock()
+        fake_print_result.reset_mock()
+        fake_enable_feature.reset_mock()
+        fake_enable_feature.side_effect = [True, False]
+        runner.invoke(dependabot.enable, '-s github/foo github/bar'.split())
+        fake_echo.assert_has_calls([call('Enabling dependabot security updates for github/foo'), call('Enabling dependabot security updates for github/bar')])
+        fake_print_result.assert_has_calls([call('security updates', ['github/foo'], 'repositories', True), call('security updates', ['github/bar'], 'repositories', False)])
+
+    @patch("click.echo")
+    def test_print_result(self, fake_echo):
+        dependabot.print_result('alerts', ['github/foo'], 'repositories', True)
+        fake_echo.assert_has_calls([call('Successfully enabled dependabot alerts for 1 repositories'), call('List of successfully enabled repositories:'),call('github/foo')])
+
+        fake_echo.reset_mock()
+        dependabot.print_result('alerts', ['github/bar'], 'repositories', False)
+        fake_echo.assert_has_calls([call('Unable to enable dependabot alerts for 1 repositories'), call('List of unsuccessful repositories:'), call('github/bar')])
 
 if __name__ == '__main__':
     unittest.main()
