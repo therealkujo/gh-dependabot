@@ -6,7 +6,7 @@ import importlib.machinery
 import os
 import sys
 import time
-from unittest.mock import Mock, call, mock_open, patch
+from unittest.mock import call, mock_open, patch
 from click.testing import CliRunner
 from io import StringIO
 
