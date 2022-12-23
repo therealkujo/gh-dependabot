@@ -177,11 +177,13 @@ class TestDependabot(unittest.TestCase):
         result = dependabot.parse_api_output(self.dependabot_enable_error_output)
         self.assertTupleEqual(expected_fail_result, result)
 
+    @patch("shutil.which")
     @patch("time.sleep")
     @patch("click.echo")
     @patch("gh_dependabot.parse_api_output")
     @patch("subprocess.run")
-    def test_call_gh_api(self, fake_subprocess_run, fake_parse_api_output, fake_echo, fake_sleep):
+    def test_call_gh_api(self, fake_subprocess_run, fake_parse_api_output, fake_echo, fake_sleep, fake_which):
+        fake_which.return_value = '/opt/homebrew/bin/gh'
         fake_subprocess_run.return_value = self.MockSubprocess(self.dependabot_enable_success_output)
         fake_parse_api_output.return_value = self.dependabot_enable_success_parsed_output
         result = dependabot.call_gh_api(self.dependabot_repo_enable_command)
