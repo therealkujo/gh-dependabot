@@ -5,11 +5,11 @@ import importlib.util
 import importlib.machinery
 import os
 import sys
-import subprocess
 import time
 from unittest.mock import Mock, call, mock_open, patch
 from click.testing import CliRunner
 from io import StringIO
+
 
 def import_path(path):
     module_name = os.path.basename(path).replace('-', '_')
@@ -22,7 +22,9 @@ def import_path(path):
     sys.modules[module_name] = module
     return module
 
+
 dependabot = import_path('gh-dependabot')
+
 
 class TestDependabot(unittest.TestCase):
 
@@ -111,7 +113,7 @@ class TestDependabot(unittest.TestCase):
             self.stdout = stdout
 
     def test_parse_alerts(self):
-        
+
         self.assertListEqual(dependabot.parse_alerts('test', self.graphql_alerts), self.parsed_alerts)
 
     @patch("sys.stdout", new_callable=StringIO)
@@ -119,7 +121,7 @@ class TestDependabot(unittest.TestCase):
         fake_open = mock_open()
         with patch("builtins.open", fake_open, create=True):
             dependabot.generate_csv(self.parsed_alerts, 'sample.csv')
-        
+
         fake_open.assert_called_with('sample.csv', 'w', newline='')
         fake_open.return_value.write.assert_has_calls([call(self.csv_header_values), call(self.csv_row_values)])
 
@@ -141,7 +143,7 @@ class TestDependabot(unittest.TestCase):
         fake_call_gh_api.return_value = ('404', [], 'Something broke')
         self.assertFalse(dependabot.get_dependabot_alerts('github/foo'))
         fake_echo.assert_called()
-        
+
         fake_parse_alerts.reset_mock()
         paginated_result = str(b'{"data":{"repository":{"name":"ghas-bootcamp","vulnerabilityAlerts":{"pageInfo":{"hasNextPage":true,"endCursor":"Y3Vyc29yOnYyOpHOr2XWzA=="},"totalCount":1,"nodes":[{"id":"RVA_kwDOHzNV0M6pkdQi","securityAdvisory":{"ghsaId":"GHSA-6528-wvf6-f6qg","permalink":"https://github.com/advisories/GHSA-6528-wvf6-f6qg","severity":"HIGH","description":"This so bad","summary":"Pycrypto generates weak key parameters"},"securityVulnerability":{"package":{"name":"pycrypto","ecosystem":"PIP"},"vulnerableVersionRange":"<= 2.6.1"},"createdAt":"2022-08-10T18:44:52Z","state":"OPEN","fixedAt":null,"fixReason":null,"dismissedAt":null,"dismissReason":null,"dismisser":null,"vulnerableManifestPath":"authn-service/requirements.txt","vulnerableRequirements":"= 2.6.1"}]}}}}', 'UTF-8')
         fake_call_gh_api.side_effect = [('200', [], paginated_result), ('200', [], non_paginated_result)]
