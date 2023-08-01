@@ -87,7 +87,7 @@ If you would like to bulk enable dependabot alerts on multiple orgs, you can giv
 gh dependabot enable -ao foo bar
 ```
 
-If you would like to bulk enable dependabot alerts for a subset of repositories based on whether they include one or more languages, you can use a combination or `gh repo list`, `jq`, and `xargs` to achieve this. Just replace YOUR_ORGANIZATION and YOUR_LIMIT with your own values. The example below enables dependabot alerts for all repositories in an organization that include either JavaScript or TypeScript.
+If you would like to bulk enable dependabot alerts for a subset of repositories based on whether they include one or more languages, you can use a combination or `gh repo list`, `jq`, and `xargs` to achieve this. Just replace YOUR_ORGANIZATION with your organization name and YOUR_LIMIT with the maximum number of repos you would like to target. The example below enables dependabot alerts for repositories in an organization that include either JavaScript or TypeScript.
 ```bash
 gh repo list YOUR_ORGANIZATION --limit YOUR_LIMIT \            
 --json nameWithOwner,languages \
