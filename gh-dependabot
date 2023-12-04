@@ -64,7 +64,7 @@ def get_dependabot_alerts(repo_name, cursor='null'):
                     createdAt
                     state
                     fixedAt
-                    fixReason
+                    autoDismissedAt
                     dismissedAt
                     dismissReason
                     dismisser {
@@ -126,10 +126,10 @@ def parse_alerts(repo_name, data):
         parsed_alert["created_at"] = alert["createdAt"]
         parsed_alert["state"] = alert["state"]
         parsed_alert["fixed_at"] = alert["fixedAt"]
-        parsed_alert["fix_reason"] = alert["fixReason"]
         parsed_alert["dismissed_at"] = alert["dismissedAt"]
         parsed_alert["dismiss_reason"] = alert["dismissReason"]
         parsed_alert["dismissed_by"] = alert["dismisser"]
+        parsed_alert["autodismissed_at"] = alert["autoDismissedAt"]
 
         alerts.append(parsed_alert)
     
@@ -258,7 +258,6 @@ def call_gh_api(command):
     except subprocess.CalledProcessError as error:
         output = error.stdout
 
-    # return parse_api_output(output)
     response_code, headers, body = parse_api_output(output)
 
     if response_code == '403' and headers['X-Ratelimit-Remaining'] == '0':
