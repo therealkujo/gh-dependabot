@@ -56,7 +56,7 @@ class TestDependabot(unittest.TestCase):
                             "createdAt": "2022-08-10T18:44:52Z",
                             "state": "OPEN",
                             "fixedAt": None,
-                            "fixReason": None,
+                            "autoDismissedAt": None,
                             "dismissedAt": None,
                             "dismissReason": None,
                             "dismisser": None,
@@ -72,7 +72,7 @@ class TestDependabot(unittest.TestCase):
                             'dismiss_reason': None,
                             'dismissed_at': None,
                             'dismissed_by': None,
-                            'fix_reason': None,
+                            'autodismissed_at': None,
                             'fixed_at': None,
                             'id': 'RVA_kwDOHzNV0M6pkdQi',
                             'manifest_filepath': 'authn-service/requirements.txt',
@@ -87,7 +87,7 @@ class TestDependabot(unittest.TestCase):
                             'vulnerable_versions': '<= 2.6.1'
                         }
                     ]
-    csv_header_values = 'advisory_permalink,created_at,description,dismiss_reason,dismissed_at,dismissed_by,fix_reason,fixed_at,id,manifest_filepath,package_ecosystem,package_name,package_version,repo,severity,cvss_score,state,summary,vulnerable_versions\r\n'
+    csv_header_values = 'advisory_permalink,created_at,description,dismiss_reason,dismissed_at,dismissed_by,autodismissed_at,fixed_at,id,manifest_filepath,package_ecosystem,package_name,package_version,repo,severity,cvss_score,state,summary,vulnerable_versions\r\n'
     csv_row_values = 'https://github.com/advisories/GHSA-6528-wvf6-f6qg,2022-08-10T18:44:52Z,Its really dangerous ok,,,,,,RVA_kwDOHzNV0M6pkdQi,authn-service/requirements.txt,PIP,pycrypto,= 2.6.1,test,HIGH,9.8,OPEN,Pycrypto generates weak key parameters,<= 2.6.1\r\n'
     gh_query = ['/opt/homebrew/bin/gh', 'api', 'graphql', '-F', 'org=github', '-F', 'repo=foo', '-F', 'cursor=null', '-f', 'query=\n    query ($org: String! $repo: String! $cursor: String){\n        repository(owner: $org name: $repo) {\n            name\n            vulnerabilityAlerts(first: 100 after: $cursor) {\n                pageInfo {\n                    hasNextPage\n                    endCursor\n                }\n                totalCount\n                nodes {\n                    id\n                    securityAdvisory {\n                        ...advFields\n                    }\n                    securityVulnerability {\n                        package {\n                            ...pkgFields\n                        }\n                        vulnerableVersionRange\n                        advisory {\n                            cvss {\n                                score\n                            }\n                        }\n                    }\n                    createdAt\n                    state\n                    fixedAt\n                    fixReason\n                    dismissedAt\n                    dismissReason\n                    dismisser {\n                        login\n                    }\n                    vulnerableManifestPath\n                    vulnerableRequirements\n                }\n            }\n        }\n    }\n    fragment advFields on SecurityAdvisory {\n        ghsaId\n        permalink\n        severity\n        description\n        summary\n    }\n    fragment pkgFields on SecurityAdvisoryPackage {\n        name\n        ecosystem\n    }\n    ']
     gh_paginated_query = ['/opt/homebrew/bin/gh', 'api', 'graphql', '-F', 'org=github', '-F', 'repo=foo', '-F', 'cursor=Y3Vyc29yOnYyOpHOr2XWzA==', '-f', 'query=\n    query ($org: String! $repo: String! $cursor: String){\n        repository(owner: $org name: $repo) {\n            name\n            vulnerabilityAlerts(first: 100 after: $cursor) {\n                pageInfo {\n                    hasNextPage\n                    endCursor\n                }\n                totalCount\n                nodes {\n                    id\n                    securityAdvisory {\n                        ...advFields\n                    }\n                    securityVulnerability {\n                        package {\n                            ...pkgFields\n                        }\n                        vulnerableVersionRange\n                        advisory {\n                            cvss {\n                                score\n                            }\n                        }\n                    }\n                    createdAt\n                    state\n                    fixedAt\n                    fixReason\n                    dismissedAt\n                    dismissReason\n                    dismisser {\n                        login\n                    }\n                    vulnerableManifestPath\n                    vulnerableRequirements\n                }\n            }\n        }\n    }\n    fragment advFields on SecurityAdvisory {\n        ghsaId\n        permalink\n        severity\n        description\n        summary\n    }\n    fragment pkgFields on SecurityAdvisoryPackage {\n        name\n        ecosystem\n    }\n    ']
@@ -282,7 +282,6 @@ class TestDependabot(unittest.TestCase):
         fake_echo.reset_mock()
         dependabot.print_result('alerts', ['github/bar'], 'repositories', False)
         fake_echo.assert_has_calls([call('Unable to enable dependabot alerts for 1 repositories'), call('List of unsuccessful repositories:'), call('github/bar')])
-
 
 if __name__ == '__main__':
     unittest.main()
